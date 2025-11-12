@@ -250,7 +250,7 @@ export default function PlayExportApp() {
     const changeUser = getQueryParam("change_user") !== ""
 
     if (clientId === "") {
-      clientId = "5734ccb0dd1a9cd34866bde12b6"
+      clientId = "5734ccb0dd104131a9cd34866bde12b6"
     }
 
     const redirectUri = encodeURIComponent(
@@ -621,7 +621,7 @@ export default function PlayExportApp() {
               "This app is currently in Development Mode and only allows specific users. " +
               "To fix this issue, the app owner needs to:\n\n" +
               "1. Go to Spotify Developer Dashboard (developer.spotify.com)\n" +
-              "2. Select this app (Client ID: 5734ccb0dd166bde12b6)\n" +
+              "2. Select this app (Client ID: 5734ccb0dd104131a9cd34866bde12b6)\n" +
               "3. Click 'Settings' → 'User Management'\n" +
               "4. Add your Spotify email to the approved users list\n\n" +
               "OR\n\n" +
