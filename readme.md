@@ -1,7 +1,6 @@
 PlayExport - Spotify to YouTube Playlist Converter
 A web application that converts Spotify playlists to YouTube format for use in various music platforms like Cubic Music, YTB, Kreate, Nzik, Riplay, and more.
 
-https://img.shields.io/badge/PlayExport-Spotify%2520to%2520YouTube-blue?style=for-the-badge
 
 🎯 What It Does
 PlayExport allows you to:
