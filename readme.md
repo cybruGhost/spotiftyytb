@@ -98,7 +98,8 @@ npm run build
 
 # Start production server
 npm start
-4. Deployment
+
+- 4. Deployment
 The application can be deployed to various platforms:
 
 Vercel (Recommended):
@@ -114,7 +115,7 @@ Set build command: npm run build
 
 Set publish directory: .next
 
-🔧 Configuration
+# 🔧 Configuration
 Default Client ID
 The app uses a default client ID (644ccb0d31a9cd866bdeb6), but you can override it by:
 
@@ -129,7 +130,7 @@ Primary: https://inv.perditum.com/api/v1/
 
 Fallback instances can be added if needed
 
-📁 Project Structure
+# 📁 Project Structure
 text
 playexport/
 ├── components/
@@ -144,7 +145,8 @@ playexport/
 │   └── utils.ts          # Utility functions
 └── public/
     └── assets/           # Static assets
-🔒 Authentication Flow
+
+# 🔒 Authentication Flow
 User clicks "Login with Spotify"
 
 Redirect to Spotify authorization
@@ -155,7 +157,7 @@ Token is cached in localStorage
 
 App fetches user profile and playlists
 
-📊 CSV Output Format
+# 📊 CSV Output Format
 The generated CSV includes:
 
 Playlist name
@@ -170,7 +172,7 @@ Duration (seconds)
 
 Thumbnail URL
 
-🐛 Troubleshooting
+# 🐛 Troubleshooting
 Common Issues
 "Access Denied" Error
 
