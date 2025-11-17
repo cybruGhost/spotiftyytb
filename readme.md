@@ -114,7 +114,7 @@ Set publish directory: .next
 
 🔧 Configuration
 Default Client ID
-The app uses a default client ID (5734ccb0dd104131a9cd34866bde12b6), but you can override it by:
+The app uses a default client ID (644ccb0d31a9cd866bdeb6), but you can override it by:
 
 URL Parameter: ?app_client_id=YOUR_CLIENT_ID
 
