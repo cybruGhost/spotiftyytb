@@ -4,35 +4,35 @@
 A web application that converts Spotify playlists to YouTube format for use in various music platforms like Cubic Music, YTB, Kreate, Nzik, Riplay, and more.
 
 
-🎯 What It Does
+# 🎯 What It Does
 PlayExport allows you to:
 
 Connect to your Spotify account and access your playlists
 
-Import Spotify playlists via link
+- Import Spotify playlists via link
 
-Convert Spotify tracks to YouTube format
+- Convert Spotify tracks to YouTube format
 
-Generate CSV files with YouTube video IDs and metadata
+- Generate CSV files with YouTube video IDs and metadata
 
-Export playlists for use in various music applications
+- Export playlists for use in various music applications
 
-🚀 Features
-🔐 Secure Spotify OAuth authentication
+# 🚀 Features
+- 🔐 Secure Spotify OAuth authentication
 
-📱 Responsive design with modern UI
+- 📱 Responsive design with modern UI
 
-🎵 Support for both playlists and liked songs
+- 🎵 Support for both playlists and liked songs
 
-⚡ Batch processing with progress tracking
+- ⚡ Batch processing with progress tracking
 
-💾 Local caching for better performance
+- 💾 Local caching for better performance
 
-📊 CSV export with comprehensive metadata
+- 📊 CSV export with comprehensive metadata
 
-🔗 Import playlists via Spotify links
+ - 🔗 Import playlists via Spotify links
 
-🛠️ Setup Instructions
+# 🛠️ Setup Instructions
 Prerequisites
 Node.js (v16 or higher)
 
