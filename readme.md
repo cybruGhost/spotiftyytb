@@ -15,7 +15,7 @@ Connect to your Spotify account and access your playlists
 
 - Generate CSV files with YouTube video IDs and metadata
 
-- Export playlists for use in various music applications
+- Export playlists for use in various music applications..
 
 # 🚀 Features
 - 🔐 Secure Spotify OAuth authentication
