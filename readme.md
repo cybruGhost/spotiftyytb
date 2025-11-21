@@ -114,6 +114,7 @@ Connect your GitHub repository
 Set build command: npm run build
 
 Set publish directory: .next
+vercel prob
 
 # 🔧 Configuration
 Default Client ID
