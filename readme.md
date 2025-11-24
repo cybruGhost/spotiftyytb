@@ -11,7 +11,7 @@ Connect to your Spotify account and access your playlists
 - Import Spotify playlists via link
 
 - Convert Spotify tracks to YouTube format
-
+- share playlists with others
 - Generate CSV files with YouTube video IDs and metadata
 
 - Export playlists for use in various music applications..
