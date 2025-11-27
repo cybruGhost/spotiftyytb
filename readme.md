@@ -25,7 +25,7 @@ Connect to your Spotify account and access all your playlists
 
 - ⚡ Batch processing with progress tracking
 
-- 💾 Local caching for better performance
+- 💾 Local caching for better performance (the logins))
 
 - 📊 CSV export with comprehensive metadata
 
