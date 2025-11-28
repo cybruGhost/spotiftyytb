@@ -6,7 +6,7 @@ A web application that converts Spotify playlists to YouTube format for use in v
 # 🎯 What It Does
 PlayExport allows you to:
 
-Connect to your Spotify account and access all your playlists
+Connect to your Spotify account and acchess all your playlists
 
 - Import Spotify playlists via link
 
