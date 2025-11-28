@@ -58,7 +58,7 @@ App description: Convert Spotify playlists to YouTube format
 
 Redirect URI: http://localhost:3000 (or your deployment URL)
 
-Configure App Settings
+Configure App Settings..
 
 Note your Client ID
 
