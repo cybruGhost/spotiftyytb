@@ -3,7 +3,7 @@
 
 A web application that converts Spotify playlists to YouTube format for use in various music platforms like Cubic Music, YTB, Kreate, Nzik,and Riplay
 
-# 🎯 What It Does
+# 🎯 What It Does,
 PlayExport allows you to:
 
 Connect to your Spotify account and access all your playlists
