@@ -66,7 +66,7 @@ In app settings, add your redirect URI:
 
 For development: http://localhost:3000
 
-For production: https://yourdomain.com
+For production: https://yourdomain.com(i use vercel)
 
 User Management (Important!)
 
