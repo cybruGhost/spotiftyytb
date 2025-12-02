@@ -76,7 +76,7 @@ Go to your app → Settings → User Management
 
 Add email addresses of users who should access the app
 
-OR enable "Extended Quota Mode" for up to 25 users
+OR enable "Extended Quota Mode" for up to 25 users ( you may add them by email)
 
 2. Environment Setup
 Create a .env.local file in your project root:
