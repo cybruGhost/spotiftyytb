@@ -184,7 +184,7 @@ Playlists Not Loading
 
 Check if you have playlists on Spotify
 
-Ensure the app has necessary permissions
+Ensure the app has necessary permissions with the email spotify account
 
 CSV Generation Fails
 
