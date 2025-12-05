@@ -8,7 +8,7 @@ PlayExport allows you to:
 
 Connect to your Spotify account and access all your playlists
 
-- Import Spotify playlists via link
+- Import Spotify playlists via link(from friends)
 
 - Convert Spotify tracks to YouTube format
 - share playlists with others
