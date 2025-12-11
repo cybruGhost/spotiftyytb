@@ -70,7 +70,7 @@ For production: https://yourdomain.com(i use vercel)
 
 User Management (Important!)
 
-Since the app is in Development Mode, you need to add users:
+Since the app is in Development Mode, you need to add users :
 
 Go to your app → Settings → User Management
 
@@ -190,6 +190,5 @@ CSV Generation Fails
 
 Check internet connection
 
-YouTube API might be rate-limited
-
+YouTube API might be rate-limited(use ur own)
 
