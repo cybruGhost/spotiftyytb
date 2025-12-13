@@ -37,7 +37,7 @@ Node.js (v16 or higher)
 
 A Spotify Developer Account
 
-A web server to host the application
+A web server to host the application😊
 
 1. Spotify Developer Dashboard Setup
 Create a Spotify Developer Account
