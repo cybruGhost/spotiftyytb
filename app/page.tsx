@@ -82,6 +82,26 @@ const CACHE_KEYS = {
   TOKEN_TIMESTAMP: "spotify_token_timestamp",
   USER_PROFILE: "spotify_user_profile",
   PLAYLISTS: "spotify_playlists",
+  REFRESH_TOKEN: "spotify_refresh_token",
+  CODE_VERIFIER: "spotify_code_verifier",
+}
+
+// Generate a random string for code verifier
+const generateRandomString = (length: number): string => {
+  const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
+  const values = crypto.getRandomValues(new Uint8Array(length))
+  return values.reduce((acc, x) => acc + possible[x % possible.length], '')
+}
+
+// Generate code challenge from verifier
+const generateCodeChallenge = async (verifier: string): Promise<string> => {
+  const encoder = new TextEncoder()
+  const data = encoder.encode(verifier)
+  const hash = await crypto.subtle.digest('SHA-256', data)
+  return btoa(String.fromCharCode(...new Uint8Array(hash)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '')
 }
 
 export default function PlayExportApp() {
@@ -108,9 +128,9 @@ export default function PlayExportApp() {
 
     if (cachedToken && tokenTimestamp) {
       const tokenAge = Date.now() - Number.parseInt(tokenTimestamp)
-      const hours24 = 24 * 60 * 60 * 1000
+      const tokenExpiresIn = 3600 * 1000 // 1 hour in milliseconds
 
-      if (tokenAge < hours24) {
+      if (tokenAge < tokenExpiresIn) {
         setAccessToken(cachedToken)
 
         // Try to restore cached data
@@ -125,29 +145,119 @@ export default function PlayExportApp() {
           setPlaylists(JSON.parse(cachedPlaylists))
         }
       } else {
-        // Token expired, clear cache
-        localStorage.removeItem(CACHE_KEYS.ACCESS_TOKEN)
-        localStorage.removeItem(CACHE_KEYS.TOKEN_TIMESTAMP)
-        localStorage.removeItem(CACHE_KEYS.USER_PROFILE)
-        localStorage.removeItem(CACHE_KEYS.PLAYLISTS)
+        // Try to refresh token
+        refreshAccessToken()
       }
     }
 
-    // Check for token in URL hash (after redirect from Spotify)
-    const hash = window.location.hash
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1))
-      const token = params.get("access_token")
+    // Check for authorization code in URL query parameters
+    const urlParams = new URLSearchParams(window.location.search)
+    const code = urlParams.get('code')
+    const state = urlParams.get('state')
+    const storedState = localStorage.getItem('spotify_auth_state')
 
-      if (token) {
-        setAccessToken(token)
-        // Cache the token and timestamp
-        localStorage.setItem(CACHE_KEYS.ACCESS_TOKEN, token)
-        localStorage.setItem(CACHE_KEYS.TOKEN_TIMESTAMP, Date.now().toString())
-        window.history.replaceState({}, document.title, window.location.pathname)
-      }
+    if (code && state && state === storedState) {
+      // Exchange code for access token
+      exchangeCodeForToken(code)
     }
   }, [])
+
+  // Exchange authorization code for access token
+  const exchangeCodeForToken = async (code: string) => {
+    try {
+      const codeVerifier = localStorage.getItem(CACHE_KEYS.CODE_VERIFIER)
+      
+      if (!codeVerifier) {
+        throw new Error("Code verifier not found")
+      }
+
+      const clientId = getQueryParam("app_client_id") || "5734ccb0dd104131a9cd34866bde12b6"
+      const redirectUri = window.location.origin + window.location.pathname
+
+      const response = await fetch('/api/spotify/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          code,
+          codeVerifier,
+          redirectUri,
+          clientId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Token exchange failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.access_token) {
+        setAccessToken(data.access_token)
+        localStorage.setItem(CACHE_KEYS.ACCESS_TOKEN, data.access_token)
+        localStorage.setItem(CACHE_KEYS.TOKEN_TIMESTAMP, Date.now().toString())
+        
+        if (data.refresh_token) {
+          localStorage.setItem(CACHE_KEYS.REFRESH_TOKEN, data.refresh_token)
+        }
+
+        // Clear URL parameters
+        window.history.replaceState({}, document.title, window.location.pathname)
+        
+        // Clear PKCE code verifier
+        localStorage.removeItem(CACHE_KEYS.CODE_VERIFIER)
+        localStorage.removeItem('spotify_auth_state')
+      }
+    } catch (error) {
+      console.error("Error exchanging code for token:", error)
+      setError("Failed to authenticate with Spotify. Please try again.")
+    }
+  }
+
+  // Refresh access token using refresh token
+  const refreshAccessToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem(CACHE_KEYS.REFRESH_TOKEN)
+      
+      if (!refreshToken) {
+        handleLogout()
+        return
+      }
+
+      const clientId = getQueryParam("app_client_id") || "5734ccb0dd104131a9cd34866bde12b6"
+
+      const response = await fetch('/api/spotify/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          refreshToken,
+          clientId,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Token refresh failed: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.access_token) {
+        setAccessToken(data.access_token)
+        localStorage.setItem(CACHE_KEYS.ACCESS_TOKEN, data.access_token)
+        localStorage.setItem(CACHE_KEYS.TOKEN_TIMESTAMP, Date.now().toString())
+        
+        if (data.refresh_token) {
+          localStorage.setItem(CACHE_KEYS.REFRESH_TOKEN, data.refresh_token)
+        }
+      }
+    } catch (error) {
+      console.error("Error refreshing token:", error)
+      handleLogout()
+    }
+  }
 
   // Search YouTube using the unofficial API
   const searchYouTube = async (query: string, artist: string): Promise<string | null> => {
@@ -242,36 +352,41 @@ export default function PlayExportApp() {
     return urlParams.get(name) || ""
   }
 
-  const handleSpotifyLogin = () => {
+  const handleSpotifyLogin = async () => {
     if (isRedirecting) return
 
     setIsRedirecting(true)
-    let clientId = getQueryParam("app_client_id")
+    
+    const clientId = getQueryParam("app_client_id") || "5734ccb0dd104131a9cd34866bde12b6"
     const changeUser = getQueryParam("change_user") !== ""
 
-    if (clientId === "") {
-      clientId = "5734ccb0dd104131a9cd34866bde12b6"
-    }
+    // Generate PKCE code verifier and challenge
+    const codeVerifier = generateRandomString(64)
+    const codeChallenge = await generateCodeChallenge(codeVerifier)
+    const state = generateRandomString(16)
 
-    const redirectUri = encodeURIComponent(
-      [window.location.protocol, "//", window.location.host, window.location.pathname].join(""),
-    )
+    // Store code verifier and state
+    localStorage.setItem(CACHE_KEYS.CODE_VERIFIER, codeVerifier)
+    localStorage.setItem('spotify_auth_state', state)
+
+    const redirectUri = encodeURIComponent(window.location.origin + window.location.pathname)
+    const scopes = encodeURIComponent('playlist-read-private playlist-read-collaborative user-library-read')
 
     const authUrl =
-      "https://accounts.spotify.com/authorize" +
-      "?client_id=" +
-      clientId +
-      "&redirect_uri=" +
-      redirectUri +
-      "&scope=playlist-read-private%20playlist-read-collaborative%20user-library-read" +
-      "&response_type=token" +
-      "&show_dialog=" +
-      (changeUser ? "true" : "false") // Fixed boolean conversion
+      `https://accounts.spotify.com/authorize?` +
+      `client_id=${clientId}` +
+      `&response_type=code` +
+      `&redirect_uri=${redirectUri}` +
+      `&scope=${scopes}` +
+      `&code_challenge_method=S256` +
+      `&code_challenge=${codeChallenge}` +
+      `&state=${state}` +
+      `&show_dialog=${changeUser ? "true" : "false"}`
 
     window.location.href = authUrl
   }
 
- const fetchPlaylists = async () => {
+  const fetchPlaylists = async () => {
     if (!accessToken) return
 
     console.log("Fetching playlists and liked songs...")
@@ -304,8 +419,8 @@ export default function PlayExportApp() {
             handleLogout()
             return
           } else if (playlistsResponse.status === 401) {
-            setError("Your session has expired. Please log in again.")
-            handleLogout()
+            // Token expired, try to refresh
+            await refreshAccessToken()
             return
           }
           throw new Error(`Failed to fetch playlists: ${playlistsResponse.status} ${playlistsResponse.statusText}`)
@@ -601,6 +716,9 @@ export default function PlayExportApp() {
     localStorage.removeItem(CACHE_KEYS.TOKEN_TIMESTAMP)
     localStorage.removeItem(CACHE_KEYS.USER_PROFILE)
     localStorage.removeItem(CACHE_KEYS.PLAYLISTS)
+    localStorage.removeItem(CACHE_KEYS.REFRESH_TOKEN)
+    localStorage.removeItem(CACHE_KEYS.CODE_VERIFIER)
+    localStorage.removeItem('spotify_auth_state')
     window.history.replaceState({}, document.title, window.location.pathname)
   }
 
@@ -631,8 +749,8 @@ export default function PlayExportApp() {
           handleLogout()
           return
         } else if (response.status === 401) {
-          setError("Your session has expired. Please log in again.")
-          handleLogout()
+          // Token expired, try to refresh
+          await refreshAccessToken()
           return
         }
         throw new Error(`Failed to fetch user profile: ${response.status} ${response.statusText}`)
@@ -679,51 +797,50 @@ export default function PlayExportApp() {
     setSelectedPlaylists(newSelected)
   }
 
-return (
-  <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900 p-6">
-    <div className="max-w-4xl mx-auto space-y-8">
-      
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <div className="flex items-center justify-between">
-          
-          <div className="flex-1"></div>
-          
-          <div className="flex-1 text-center">
-            <h1 className="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-purple-500 animate-text">
-              PlayExport
-            </h1>
-<p className="text-gray-200 mt-3 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
-  Convert <span className="font-bold text-purple-400">Spotify playlists</span> to <span className="font-bold text-white-400">YouTube format</span> for <span className="font-bold text-green-400">Cubic Music</span>, <span className="text-red-400 font-medium">YTB</span>, <span className="text-indigo-300 font-medium">Kreate</span>, <span className="text-indigo-400 font-medium">Nzik</span>, <span className="text-green-300 font-medium">Riplay</span> and more
-</p>
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-950 to-gray-900 p-6">
+      <div className="max-w-4xl mx-auto space-y-8">
+        
+        {/* Header */}
+        <div className="text-center space-y-4">
+          <div className="flex items-center justify-between">
+            
+            <div className="flex-1"></div>
+            
+            <div className="flex-1 text-center">
+              <h1 className="text-5xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-pink-500 to-purple-500 animate-text">
+                PlayExport
+              </h1>
+              <p className="text-gray-200 mt-3 text-base sm:text-lg leading-relaxed max-w-xl mx-auto">
+                Convert <span className="font-bold text-purple-400">Spotify playlists</span> to <span className="font-bold text-white-400">YouTube format</span> for <span className="font-bold text-green-400">Cubic Music</span>, <span className="text-red-400 font-medium">YTB</span>, <span className="text-indigo-300 font-medium">Kreate</span>, <span className="text-indigo-400 font-medium">Nzik</span>, <span className="text-green-300 font-medium">Riplay</span> and more
+              </p>
+            </div>
+            
+            <div className="flex-1 flex justify-end">
+              {accessToken && (
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  size="sm"
+                  className="border-red-500 text-red-400 hover:bg-red-700 hover:text-white transition-all duration-300 shadow-lg shadow-red-800/50"
+                >
+                  <LogOut className="h-5 w-5 mr-2" />
+                  Sign Out
+                </Button>
+              )}
+            </div>
+
           </div>
-          
-          <div className="flex-1 flex justify-end">
-            {accessToken && (
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                size="sm"
-                className="border-red-500 text-red-400 hover:bg-red-700 hover:text-white transition-all duration-300 shadow-lg shadow-red-800/50"
-              >
-                <LogOut className="h-5 w-5 mr-2" />
-                Sign Out
-              </Button>
-            )}
+        </div>
+
+        {/* Success Message */}
+        {success && (
+          <div className="bg-green-800/40 border border-green-600 rounded-xl p-4 text-green-200 flex items-center gap-3 shadow-md shadow-green-700/40 animate-pulse">
+            <CheckCircle className="h-6 w-6" />
+            <span className="font-medium">{success}</span>
           </div>
-
-        </div>
-      </div>
-
-      {/* Success Message */}
-      {success && (
-        <div className="bg-green-800/40 border border-green-600 rounded-xl p-4 text-green-200 flex items-center gap-3 shadow-md shadow-green-700/40 animate-pulse">
-          <CheckCircle className="h-6 w-6" />
-          <span className="font-medium">{success}</span>
-        </div>
-      )}
-      
-
+        )}
+        
 
         {/* Error Message */}
         {error && (
@@ -860,24 +977,24 @@ return (
               </Card>
             )}
 
-        {/* Spotify Playlist Notice */}
-        <Card className="border border-purple-500 bg-gray-900 p-5 rounded-lg shadow-md">
-          <CardHeader>
-            <CardTitle className="text-purple-300 text-lg">Spotify Playlist Notice</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-purple-400">
-              ⚠️ If your account cannot be accessed,{" "}
-              <a 
-                href="mailto:chrislumain@yahoo.com?subject=Spotify Access Request&body=Please add my email to the Spotify access list." 
-                className="underline"
-              >
-                email us here
-              </a>{" "}
-              to get your email added.
-            </p>
-          </CardContent>
-        </Card>
+            {/* Spotify Playlist Notice */}
+            <Card className="border border-purple-500 bg-gray-900 p-5 rounded-lg shadow-md">
+              <CardHeader>
+                <CardTitle className="text-purple-300 text-lg">Spotify Playlist Notice</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-xs text-purple-400">
+                  ⚠️ If your account cannot be accessed,{" "}
+                  <a 
+                    href="mailto:chrislumain@yahoo.com?subject=Spotify Access Request&body=Please add my email to the Spotify access list." 
+                    className="underline"
+                  >
+                    email us here
+                  </a>{" "}
+                  to get your email added.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Spotify Link Input */}
             <Card className="border-purple-700 bg-gray-800">
@@ -1099,5 +1216,5 @@ return (
         )}
       </div>
     </div>
-  ) // Ensure proper closing parenthesis and semicolon
+  )
 }
